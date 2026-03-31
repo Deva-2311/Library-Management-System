@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — LibraryOS{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+
+{% block topbar_actions %}
+{% if session.role == 'admin' %}
+<button class="btn btn-ghost btn-sm" onclick="checkOverdue()">🔄 Check Overdue</button>
+{% endif %}
+{% endblock %}
+
+{% block content %}
+<!-- STATS -->
+<div class="stat-grid">
+  <div class="stat-card books">
+    <div class="stat-label">Total Books</div>
+    <div class="stat-value" id="stat-books">{{ total_books }}</div>
+    <div class="stat-icon">📚</div>
+  </div>
+  <div class="stat-card users">
+    <div class="stat-label">Members</div>
+    <div class="stat-value" id="stat-users">{{ total_users }}</div>
+    <div class="stat-icon">👥</div>
+  </div>
+  <div class="stat-card active">
+    <div class="stat-label">Active Borrows</div>
+    <div class="stat-value" id="stat-borrows">{{ active_borrows }}</div>
+    <div class="stat-icon">🔖</div>
+  </div>
+  <div class="stat-card overdue">
+    <div class="stat-label">Overdue</div>
+    <div class="stat-value" id="stat-overdue">{{ overdue }}</div>
+    <div class="stat-icon">⚠️</div>
+  </div>
+</div>
+
+<div class="two-col">
+  <!-- RECENT ACTIVITY -->
+  <div class="table-card">
+    <div class="table-header">
+      <h2>Recent Activity</h2>
+      <a href="{{ url_for('reservations') }}" class="btn btn-ghost btn-sm">View All</a>
+    </div>
+    {% if recent_activity %}
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            {% if session.role=='admin' %}<th>Member</th>{% endif %}
+            <th>Book</th>
+            <th>Status</th>
+            <th>Due</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in recent_activity %}
+          <tr>
+            {% if session.role=='admin' %}<td>{{ r.user_name }}</td>{% endif %}
+            <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ r.book_title }}</td>
+            <td><span class="badge badge-{{ r.status }}">{{ r.status }}</span></td>
+            <td style="font-size:13px;color:#636366">{{ r.due_date or '—' }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="empty-state"><div class="empty-icon">🔖</div><p>No recent activity</p></div>
+    {% endif %}
+  </div>
+
+  <!-- POPULAR BOOKS -->
+  <div class="table-card">
+    <div class="table-header">
+      <h2>Most Popular Books</h2>
+      <a href="{{ url_for('books') }}" class="btn btn-ghost btn-sm">Browse All</a>
+    </div>
+    {% if popular_books %}
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>#</th><th>Title</th><th>Borrows</th></tr>
+        </thead>
+        <tbody>
+          {% for i, b in enumerate(popular_books) %}
+          <tr>
+            <td style="color:var(--moss);font-weight:700;font-family:var(--font-display)">{{ i+1 }}</td>
+            <td>
+              <div style="font-weight:500;font-size:13px">{{ b.title }}</div>
+              <div style="font-size:12px;color:#636366">{{ b.author }}</div>
+            </td>
+            <td><span class="badge badge-reserved">{{ b.borrow_count }}</span></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="empty-state"><div class="empty-icon">📖</div><p>No data yet</p></div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function checkOverdue() {
+  fetch('/api/overdue-check')
+    .then(r => r.json())
+    .then(d => {
+      alert('Overdue check complete. ' + d.updated + ' records updated.');
+      location.reload();
+    });
+}
+// Live stats refresh every 60s
+setInterval(() => {
+  fetch('/api/stats').then(r=>r.json()).then(d => {
+    document.getElementById('stat-books').textContent = d.total_books;
+    document.getElementById('stat-users').textContent = d.total_members;
+    document.getElementById('stat-borrows').textContent = d.active_borrows;
+    document.getElementById('stat-overdue').textContent = d.overdue;
+  });
+}, 60000);
+</script>
+{% endblock %}

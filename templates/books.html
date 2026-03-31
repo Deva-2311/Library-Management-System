@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block title %}Books — LibraryOS{% endblock %}
+{% block page_title %}Book Catalogue{% endblock %}
+
+{% block topbar_actions %}
+{% if session.role == 'admin' %}
+<a href="{{ url_for('add_book') }}" class="btn btn-primary">+ Add Book</a>
+{% endif %}
+{% endblock %}
+
+{% block content %}
+<!-- FILTERS -->
+<div class="table-card" style="margin-bottom:24px">
+  <div class="table-header" style="flex-wrap:wrap;gap:12px">
+    <form method="GET" class="search-bar">
+      <input class="search-input" name="q" placeholder="Search title, author, ISBN…" value="{{ search }}">
+      <button type="submit" class="btn btn-primary btn-sm">Search</button>
+      {% if search %}<a href="{{ url_for('books') }}" class="btn btn-ghost btn-sm">Clear</a>{% endif %}
+    </form>
+    <form method="GET" class="search-bar">
+      <select name="genre" class="search-input" style="min-width:160px" onchange="this.form.submit()">
+        <option value="">All Genres</option>
+        {% for g in genres %}
+        <option value="{{ g.genre }}" {% if selected_genre==g.genre %}selected{% endif %}>{{ g.genre }}</option>
+        {% endfor %}
+      </select>
+    </form>
+    <div style="font-size:13px;color:var(--ink-light);margin-left:auto">
+      {{ books|length }} book{{ 's' if books|length != 1 }}
+    </div>
+  </div>
+</div>
+
+<!-- BOOK GRID -->
+{% if books %}
+<div class="books-grid">
+  {% for book in books %}
+  {% set genre_class = 'tech' if book.genre in ['Technology'] else 'fiction' if book.genre in ['Fiction'] else 'auto' if book.genre in ['Autobiography'] else 'hist' if book.genre in ['History','Finance'] else 'other' %}
+  <div class="book-card">
+    <div class="book-cover {{ genre_class }}"></div>
+    <div class="book-body">
+      <div class="book-genre">{{ book.genre or 'General' }}</div>
+      <div class="book-title">{{ book.title }}</div>
+      <div class="book-author">{{ book.author }}</div>
+      {% if book.year_published %}<div style="font-size:12px;color:#aaa">{{ book.year_published }}</div>{% endif %}
+      <div class="book-meta">
+        <span class="book-copies">
+          {% if book.available_copies > 0 %}
+          <span class="badge badge-available">{{ book.available_copies }} available</span>
+          {% else %}
+          <span class="badge badge-none">None available</span>
+          {% endif %}
+        </span>
+        <span style="font-size:11px;color:#aaa">/ {{ book.total_copies }} total</span>
+      </div>
+    </div>
+    <div class="book-actions">
+      {% if book.available_copies > 0 and session.role == 'member' %}
+      <form method="POST" action="{{ url_for('reserve_book', book_id=book.id) }}" style="flex:1">
+        <button type="submit" class="btn btn-primary btn-sm" style="width:100%">Reserve</button>
+      </form>
+      {% elif session.role == 'member' %}
+      <button class="btn btn-ghost btn-sm" disabled style="flex:1;opacity:0.5">Unavailable</button>
+      {% endif %}
+      {% if session.role == 'admin' %}
+      <a href="{{ url_for('edit_book', book_id=book.id) }}" class="btn btn-ghost btn-sm">Edit</a>
+      <form method="POST" action="{{ url_for('delete_book', book_id=book.id) }}" onsubmit="return confirm('Delete this book?')">
+        <button type="submit" class="btn btn-danger btn-sm">Del</button>
+      </form>
+      {% endif %}
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="table-card">
+  <div class="empty-state">
+    <div class="empty-icon">📚</div>
+    <p>No books found. {% if session.role=='admin' %}<a href="{{ url_for('add_book') }}">Add the first one</a>{% endif %}</p>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

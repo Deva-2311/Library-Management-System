@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}LibraryOS{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  {% block head %}{% endblock %}
+</head>
+<body>
+
+{% if session.user_id %}
+<!-- SIDEBAR -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-brand">
+    <div class="brand-icon">📚</div>
+    <div>
+      <div class="brand-name">LibraryOS</div>
+      <div class="brand-sub">Management System</div>
+    </div>
+  </div>
+
+  <nav class="sidebar-nav">
+    <a href="{{ url_for('dashboard') }}" class="nav-link {% if request.endpoint=='dashboard' %}active{% endif %}">
+      <span class="nav-icon">⬛</span> Dashboard
+    </a>
+    <a href="{{ url_for('books') }}" class="nav-link {% if 'book' in request.endpoint %}active{% endif %}">
+      <span class="nav-icon">📖</span> Books
+    </a>
+    <a href="{{ url_for('reservations') }}" class="nav-link {% if request.endpoint=='reservations' %}active{% endif %}">
+      <span class="nav-icon">🔖</span> Reservations
+    </a>
+    {% if session.role == 'admin' %}
+    <a href="{{ url_for('users') }}" class="nav-link {% if request.endpoint=='users' %}active{% endif %}">
+      <span class="nav-icon">👥</span> Members
+    </a>
+    {% endif %}
+    <a href="{{ url_for('profile') }}" class="nav-link {% if request.endpoint=='profile' %}active{% endif %}">
+      <span class="nav-icon">👤</span> Profile
+    </a>
+  </nav>
+
+  <div class="sidebar-footer">
+    <div class="user-pill">
+      <div class="user-avatar">{{ session.name[0].upper() }}</div>
+      <div class="user-info">
+        <div class="user-name">{{ session.name }}</div>
+        <div class="user-role {{ session.role }}">{{ session.role }}</div>
+      </div>
+    </div>
+    <a href="{{ url_for('logout') }}" class="logout-btn">↩ Logout</a>
+  </div>
+</aside>
+
+<!-- MAIN CONTENT -->
+<div class="main-wrap">
+  <header class="topbar">
+    <button class="menu-toggle" onclick="document.getElementById('sidebar').classList.toggle('open')">☰</button>
+    <div class="topbar-title">{% block page_title %}{% endblock %}</div>
+    <div class="topbar-actions">{% block topbar_actions %}{% endblock %}</div>
+  </header>
+
+  <main class="content">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    <div class="flash-wrap">
+      {% for cat, msg in messages %}
+      <div class="alert alert-{{ cat }}">{{ msg }} <button onclick="this.parentElement.remove()">×</button></div>
+      {% endfor %}
+    </div>
+    {% endif %}
+    {% endwith %}
+
+    {% block content %}{% endblock %}
+  </main>
+</div>
+
+{% else %}
+{% block auth_content %}{% endblock %}
+{% endif %}
+
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

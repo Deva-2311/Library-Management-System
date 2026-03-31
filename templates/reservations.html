@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% block title %}Reservations — LibraryOS{% endblock %}
+{% block page_title %}Reservations{% endblock %}
+
+{% block content %}
+<div class="table-card">
+  <div class="table-header">
+    <h2>{{ 'All Reservations' if session.role=='admin' else 'My Reservations' }}</h2>
+    <div style="font-size:13px;color:var(--ink-light)">{{ reservations|length }} record{{ 's' if reservations|length != 1 }}</div>
+  </div>
+
+  {% if reservations %}
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          {% if session.role=='admin' %}<th>Member</th>{% endif %}
+          <th>Book</th>
+          <th>Reserved</th>
+          <th>Due Date</th>
+          <th>Status</th>
+          <th>Fine</th>
+          {% if session.role=='admin' %}<th>Actions</th>{% endif %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in reservations %}
+        <tr>
+          <td style="color:#aaa;font-size:13px">{{ r.id }}</td>
+          {% if session.role=='admin' %}
+          <td style="font-weight:500">{{ r.user_name }}</td>
+          {% endif %}
+          <td>
+            <div style="font-weight:500;font-size:14px">{{ r.book_title }}</div>
+            <div style="font-size:12px;color:#aaa">{{ r.author }}</div>
+          </td>
+          <td style="font-size:13px;color:#636366">{{ r.reserved_date }}</td>
+          <td style="font-size:13px;{% if r.due_date and r.status not in ['returned','cancelled'] and r.due_date < today %}color:var(--rust);font-weight:500{% else %}color:#636366{% endif %}">
+            {{ r.due_date or '—' }}
+          </td>
+          <td><span class="badge badge-{{ r.status }}">{{ r.status }}</span></td>
+          <td style="font-size:13px">
+            {% if r.fine_amount and r.fine_amount > 0 %}
+            <span style="color:var(--rust);font-weight:500">₹{{ '%.2f'|format(r.fine_amount) }}</span>
+            {% else %}—{% endif %}
+          </td>
+          {% if session.role=='admin' %}
+          <td>
+            <div style="display:flex;gap:6px;flex-wrap:wrap">
+              {% if r.status == 'reserved' %}
+              <form method="POST" action="{{ url_for('update_reservation', res_id=r.id) }}">
+                <input type="hidden" name="action" value="borrow">
+                <button class="btn btn-gold btn-sm">Issue</button>
+              </form>
+              <form method="POST" action="{{ url_for('update_reservation', res_id=r.id) }}">
+                <input type="hidden" name="action" value="cancel">
+                <button class="btn btn-ghost btn-sm">Cancel</button>
+              </form>
+              {% elif r.status in ['borrowed','overdue'] %}
+              <form method="POST" action="{{ url_for('update_reservation', res_id=r.id) }}">
+                <input type="hidden" name="action" value="return">
+                <button class="btn btn-primary btn-sm">Return</button>
+              </form>
+              {% else %}
+              <span style="font-size:12px;color:#aaa">{{ r.return_date or '—' }}</span>
+              {% endif %}
+            </div>
+          </td>
+          {% endif %}
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <div class="empty-icon">🔖</div>
+    <p>No reservations yet. <a href="{{ url_for('books') }}">Browse books to reserve one.</a></p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const today = new Date().toISOString().split('T')[0];
+</script>
+{% endblock %}
